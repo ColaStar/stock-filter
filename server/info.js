@@ -1,5 +1,5 @@
 const { file } = require('@tangyansoft/toolkit-node');
-const { info } = require('./utils/data');
+const { info, input } = require('./utils/data');
 const subset = require('./model/subset');
 const sleep = require('./utils/sleep');
 const p = require('./utils/puppeteer');
@@ -12,11 +12,14 @@ let keys = [subset.preset.ash[0], subset.preset.ksh[0], subset.preset.msz[0], su
         let list = Object.keys(codes);
         for (let j = 0; j < list.length; j++) {
             try {
-                let [filePath, state] = await info.all(list[j]);
-                if (process.argv.includes('--input')) {
-
-                } else if (state) {
-                    await sleep();
+                if (/^\d+$/.test(list[j])) {
+                    let [filePath, state] = await info.all(list[j]);
+                    if (process.argv.includes('--input')) {
+                        await input.info.basic(filePath, list[j]);
+                    } else if (state) {
+                        console.log(filePath);
+                        await sleep(10);
+                    }
                 }
             } catch (e) {
                 console.log(e);

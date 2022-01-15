@@ -1,5 +1,5 @@
 import { createBox } from './utils/dom';
-export default function(data) {
+export default function(wrapper, data) {
     let { code, name } = data;
     let platform = 'sh';
     /^[03]/.test(code) && (platform = 'sz');
@@ -8,7 +8,7 @@ export default function(data) {
         class: 'js-container container',
         'data-code': code,
     });
-    document.querySelector('.js-kline-box').append(container);
+    wrapper.append(container);
 
     const info = createBox('div', {
         class: 'info'

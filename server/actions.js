@@ -11,11 +11,13 @@ const rule = require('./rules');
 const getAllSubset = (exclude = [subset.preset.bsh[0], subset.preset.bsz[0]]) => Object.keys(subset.preset).map(key => subset.preset[key][0]).filter(key => !exclude.includes(key));
 
 const getKLineByCode = async (code, query) => {
-    const collection = createActions(code);
-    let lines = await collection.findMany(query);
+    const codeCollection = createActions(code);
+    const infoCollection = createActions('info');
+    let lines = await codeCollection.findMany(query);
+    let info = await infoCollection.findOne({ code });
     let arr = lines.sort((a, b) => a.timestamp - b.timestamp);
     await sleep(0.01);
-    return arr;
+    return [info || {}, arr];
 };
 
 const getAllKLine = async (query) => {
@@ -28,10 +30,10 @@ const getAllKLine = async (query) => {
         for (let j = 0; j < list.length; j++) {
             const code = list[j];
             try {
-                if (/\d+$/.test(code) && !/st/i.test(codes[code].name)) {
-                    let arr = await getKLineByCode(code, query);
+                if (/\d+$/.test(code)) {
+                    let [info, arr] = await getKLineByCode(code, query);
                     result[key] = result[key] || [];
-                    result[key].push({ name: codes[code].name, code, list: arr });
+                    result[key].push([{ name: codes[code].name, code, ...info }, arr]);
                 }
             } catch (e) {
                 console.log(code, e);
@@ -48,10 +50,10 @@ const getKLineByFilter = async (data, query) => {
         let key = keys[i];
         let list = data[key];
         for (let j = 0; j < list.length; j++) {
-            let [name, code] = list[j];
-            let lines = await getKLineByCode(code, query);
+            let { name, code } = list[j][0];
+            let [info, lines] = await getKLineByCode(code, query);
             result[key] = result[key] || [];
-            result[key].push([name, code, {}, lines]);
+            result[key].push([{ name, code, ...info }, lines]);
         }
     }
     return result;
@@ -64,7 +66,7 @@ const filter = async (start = '2021-12-01', date) => {
         let result = rule.rule1(clone(context));
         observer.emit('wss:send', { type: 'get:filter:data', data: result });
         file.write(`${process.cwd()}/data/filter/${date}.json`, JSON.stringify(result));
-        Object.keys(result).forEach(key =>{console.log(key, result[key].length)});
+        Object.keys(result).forEach(key => { console.log(key, result[key].length) });
         return next();
     });
     compose.use(async (context, next) => {
@@ -74,27 +76,33 @@ const filter = async (start = '2021-12-01', date) => {
     compose.exec({ all });
 };
 
-const history = async (start, date) => {
+const history = async (start, date, rule) => {
     let result = {};
-    let historyFile = `${process.cwd()}/data/filter/${date}-1.json`;
-    if (!fs.existsSync(historyFile)) {
-        historyFile = `${process.cwd()}/data/filter/${date}.json`;
+    let data = null;
+    let dataFile = null;
+    if (rule) {
+        dataFile = `${process.cwd()}/data/filter/${date}-${rule}.json`;
+    } else {
+        dataFile = `${process.cwd()}/data/filter/${date}-1.json`;
+        !fs.existsSync(dataFile) && (dataFile = `${process.cwd()}/data/filter/${date}.json`);
     }
-    if (fs.existsSync(historyFile)) {
-        let data = require(historyFile);
+    if (fs.existsSync(dataFile)) {
+        data = require(dataFile);
+    }
+    if (data) {
         result = await getKLineByFilter(data, { timestamp: { $gt: new Date(`${start} 00:00:00`).getTime() } });
     }
     observer.emit('wss:send', { type: 'get:history:data', data: result });
 };
 
 observer.on('get:filter:data', data => {
-    console.log('==================');
+    console.log('get:filter:data', data);
     let { start, date } = data;
     let p = `${process.cwd()}/data/filter/${date}.json`;
     let filterFile = `${process.cwd()}/data/filter/${date}-1.json`;
     if (fs.existsSync(p)) {
         let result = require(p);
-        let filterData = fs.existsSync(filterFile) ? JSON.parse(fs.readFileSync(filterFile)) : null
+        let filterData = fs.existsSync(filterFile) ? JSON.parse(fs.readFileSync(filterFile)) : null;
         observer.emit('wss:send', { type: 'get:filter:data', data: result, filter: filterData });
     } else {
         filter(start, date, 'socket').catch(err => {
@@ -104,9 +112,9 @@ observer.on('get:filter:data', data => {
 });
 
 observer.on('get:history:data', data => {
-    console.log('==================');
-    let { start, date } = data;
-    history(start, date);
+    console.log('get:history:data', data);
+    let { start, date, rule } = data;
+    history(start, date, rule);
 });
 
 observer.on('save:data', res => {

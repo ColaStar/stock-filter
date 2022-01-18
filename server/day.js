@@ -1,7 +1,7 @@
 const { dateTool } = require('@tangyansoft/toolkit-common');
 const { download, updateSubset, input } = require('./utils/data');
 const xlsx = require('./utils/xlsx');
-
+// 爬每日数据 如果需要录入直接加 --input
 const date = dateTool.format(Date.now(), 'yyyy-MM-dd');
 
 download.day.sz(date).then(res => {

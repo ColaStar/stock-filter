@@ -9,7 +9,7 @@ const { MongoClient } = require('mongodb');
 const CONFIG = {
     dbs: {
         stock: {
-            uri: 'mongodb://localhost?maxPoolSize=100',
+            uri: 'mongodb://127.0.0.1?maxPoolSize=100',
             collections: []
         }
     }

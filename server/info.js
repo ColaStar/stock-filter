@@ -4,7 +4,7 @@ const subset = require('./model/subset');
 const sleep = require('./utils/sleep');
 const p = require('./utils/puppeteer');
 
-
+// 爬所有股票基本信息（现有流通股本，总股本，发行价）
 let keys = [subset.preset.ash[0], subset.preset.ksh[0], subset.preset.msz[0], subset.preset.csz[0]];
 (async () => {
     for (let i = 0; i < keys.length; i++) {

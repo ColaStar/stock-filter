@@ -20,7 +20,7 @@ class Done {
         return !!this.data[key];
     }
 };
-
+// 录入库里-深市历史数据（以时间为单位的xlsx）
 const inputSz = async () => {
     const done = new Done('sz');
     const sz = async (year) => {
@@ -31,7 +31,7 @@ const inputSz = async () => {
             if (!done.get(date)) {
                 await input.day.sz(`${process.cwd()}/data/day/sz/${date}.xlsx`, date);
                 await done.set(date);
-                console.log(`${date} 已录入`);
+                console.log(`深市 ${date} 数据已录入`);
             }
         }
     };
@@ -39,8 +39,11 @@ const inputSz = async () => {
     for (let i = 0; i < years.length; i++) {
         await sz(years[i]);
     }
+    console.log('深市已录完')
+
 };
 
+// 录入库里-沪市历史的数据（以股票为单位的json）
 const inputSh = async () => {
     const done = new Done('sh');
     let files = file.getFiles(`${process.cwd()}/data/history/sh/`, [], (p) => /\.json/.test(p));
@@ -50,18 +53,20 @@ const inputSh = async () => {
             try {
                 await input.history.sh(files[i], code);
                 await done.set(code);
-                console.log(`${code} 已录入`);
+                console.log(`沪市 ${code} 数据已录入`);
             } catch (e) {
                 file.write(`${process.cwd()}/data/error.txt`, `${code}\n`, { type: 'append' });
             }
         }
     }
+    console.log('沪市已录完')
 };
 
+//历史数据不包含 2021-12-17 到现在的
 const inputDay = async () => {
     let years = [2021, 2022];
     let start = '2021-12-27 00:00:00';
-    let end = '2022-01-14 00:00:00';
+    let end = '2022-01-11 00:00:00';
     for (let i = 0; i < years.length; i++) {
         await (async (year) => {
             let dayList = getAllTradingDay(year);
@@ -73,13 +78,15 @@ const inputDay = async () => {
                     await sleep(0.1);
                     await input.day.sh(`${process.cwd()}/data/day/sh/${date}.json`, date);
                     await sleep(0.1);
-                    console.log(`${date} 已录入`);
+                    console.log(`inputDay ${date} 已录入`);
                 }
             }
         })(years[i]);
     }
+    console.log(`inputDay 每天的数据 已录完`);
 };
 
+// 录入股票基本信息
 const inputInfo = async () => {
     const done = new Done('info');
     let files = file.getFiles(`${process.cwd()}/data/info/`, [], (p) => /\.html/.test(p));

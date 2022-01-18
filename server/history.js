@@ -6,7 +6,7 @@ const subset = require('./model/subset');
 const sleep = require('./utils/sleep');
 const p = require('./utils/puppeteer');
 const { getAllTradingDay } = require('./utils');
-
+// 爬历史数据
 const sz = async (year) => {
     let dayList = getAllTradingDay(year);
     for (let i = 0; i < dayList.length; i++) {
